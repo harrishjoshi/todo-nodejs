@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 const app = express();
 const dotenv = require("dotenv");
 const Todo = require("./models/TodoModel");
-const TodoModel = require("./models/TodoModel");
 
 // configure environment variable
 dotenv.config();
@@ -22,7 +21,6 @@ app.get("/", (req, res) => {
     Todo.find({}, (err, todos) => {
         res.render("todo.ejs", { todos });
     });
-
 });
 
 // SAVE METHOD
@@ -71,9 +69,14 @@ app.route("/remove/:id").get((req, res) => {
 
 // connection to db
 mongoose.set("strictQuery", false);
-mongoose.connect(process.env.DB_CONNECT_URL, () => {
-    console.log(`MongoDB connected...`);
-    // run server on specified port 
+mongoose.connect(process.env.DB_CONNECT_URL);
+const db = mongoose.connection;
+
+db.on('error', console.error.bind(console, `Connection error: `));
+
+db.once('open', function () {
+    console.log("Connection successful!");
+    // run server
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
         console.log(`Express server listening on port: ${PORT}`)
