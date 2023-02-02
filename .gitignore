@@ -49,4 +49,8 @@ typings/
 .yarn-integrity
 
 # dotenv environment variables file
-.env
+#.env
+
+# .yml config files
+#*.yml
+#*.yaml
