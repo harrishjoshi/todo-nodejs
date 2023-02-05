@@ -67,17 +67,29 @@ app.route("/remove/:id").get((req, res) => {
     });
 });
 
+// use when starting application locally
+const mongoUrlLocal = "mongodb://username:password@localhost:27017"
+// use when starting application as docker container
+const mongoUrlDocker = "mongodb://username:password@mongodb/?directConnection=true"
+// pass these options to mongo client connect request to avoid DeprecationWarning for current Server Discovery and Monitoring engine
+let mongoClientOptions = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    family: 4, // use IPv4, mongoose default IPv6
+};
+console.log(mongoClientOptions)
 // connection to db
 mongoose.set("strictQuery", false);
-mongoose.connect(process.env.DB_CONNECT_URL);
+mongoose.connect(mongoUrlDocker, mongoClientOptions);
 const db = mongoose.connection;
-
-db.on('error', console.error.bind(console, `Connection error: `));
+db.on('error', () => {
+    console.error.bind(console, `Connection error: `)
+});
 
 db.once('open', function () {
     console.log("Connection successful!");
     // run server
-    const PORT = process.env.PORT || 3000;
+    const PORT = 3000;
     app.listen(PORT, () => {
         console.log(`Express server listening on port: ${PORT}`)
     });
