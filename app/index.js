@@ -70,14 +70,14 @@ app.route("/remove/:id").get((req, res) => {
 // use when starting application locally
 const mongoUrlLocal = "mongodb://username:password@localhost:27017"
 // use when starting application as docker container
-const mongoUrlDocker = "mongodb://username:password@mongodb/?directConnection=true"
+const mongoUrlDocker = "mongodb://username:password@mongodb"
 // pass these options to mongo client connect request to avoid DeprecationWarning for current Server Discovery and Monitoring engine
 let mongoClientOptions = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     family: 4, // use IPv4, mongoose default IPv6
 };
-console.log(mongoClientOptions)
+
 // connection to db
 mongoose.set("strictQuery", false);
 mongoose.connect(mongoUrlDocker, mongoClientOptions);

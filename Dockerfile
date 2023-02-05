@@ -18,5 +18,7 @@ WORKDIR /home/app
 # will execute npm install in /home/app because of WORKDIR
 RUN npm install
 
+EXPOSE 3000
+
 # Specify the command to run when the container is started
 CMD ["node", "index.js"]

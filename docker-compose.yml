@@ -19,3 +19,11 @@ services:
     # fixes MongoNetworkError when mongodb is not ready when mongo-express starts
     restart: always
     container_name: mongo-express
+  todo-app:
+    image: todo-app:1.0
+    ports:
+      - 3000:3000
+    restart: always
+    links:
+      - mongodb
+    container_name: todo-app
