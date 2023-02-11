@@ -8,6 +8,8 @@ services:
       MONGO_INITDB_ROOT_USERNAME: username
       MONGO_INITDB_ROOT_PASSWORD: password
     container_name: mongodb
+    volumes:
+      - mongo-data:/data/db
   mongo-express:
     image: mongo-express
     ports:
@@ -27,3 +29,6 @@ services:
     links:
       - mongodb
     container_name: todo-app
+volumes:
+  mongo-data:
+    driver: local
