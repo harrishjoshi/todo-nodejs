@@ -1,98 +1,116 @@
 const express = require("express");
-const mongoose = require("mongoose");
-const app = express();
+const { MongoClient, ObjectId } = require("mongodb");
 const dotenv = require("dotenv");
-const Todo = require("./models/TodoModel");
+const app = express();
 
-// configure environment variable
+// Configure environment variables
 dotenv.config();
 
-// to serve static file
+// To serve static files
 app.use("/static", express.static("public"));
-
 app.use(express.urlencoded({ extended: true }));
 
-// set view templates config
+// Set view templates config
 app.set("view engine", "ejs");
 
+// MongoDB connection URL
+const mongoUrl =
+  process.env.MONGO_URL || "mongodb://username:password@localhost:27017";
+const mongoClientOptions = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  family: 4,
+};
+
+// Middleware to handle MongoDB connection
+app.use(async (req, res, next) => {
+  const client = new MongoClient(mongoUrl, mongoClientOptions);
+  try {
+    await client.connect();
+    req.db = client.db("todos-app");
+    req.client = client;
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET METHOD
-app.get("/", (req, res) => {
-  console.log(`FindAll Method`);
-  Todo.find({}, (err, todos) => {
+app.get("/", async (req, res) => {
+  console.log("FindAll Method");
+  try {
+    const collection = req.db.collection("todos");
+    const todos = await collection.find({}).toArray();
     res.render("todo.ejs", { todos });
-  });
+  } finally {
+    await req.client.close();
+  }
 });
 
 // SAVE METHOD
 app.post("/", async (req, res) => {
-  console.log(`Save Method`);
-  const todo = new Todo({
-    content: req.body.content,
-  });
-
+  console.log("Save Method");
   try {
-    await todo.save();
+    const collection = req.db.collection("todos");
+    await collection.insertOne({ content: req.body.content });
     console.log("Save successfully");
     res.redirect("/");
   } catch (err) {
     console.log("Failed to save, please try again");
     res.redirect("/");
+  } finally {
+    await req.client.close();
   }
 });
 
 // UPDATE METHOD
 app
   .route("/edit/:id")
-  .get((req, res) => {
-    console.log(`Edit Method`);
+  .get(async (req, res) => {
+    console.log("Edit Method");
     const id = req.params.id;
-    Todo.find({}, (err, todos) => {
+    try {
+      const collection = req.db.collection("todos");
+      const todos = await collection.find({}).toArray();
       res.render("todoEdit.ejs", { todos, todoId: id });
-    });
+    } finally {
+      await req.client.close();
+    }
   })
-  .post((req, res) => {
+  .post(async (req, res) => {
     const id = req.params.id;
-    Todo.findByIdAndUpdate(id, { content: req.body.content }, (err) => {
-      if (err) return res.send(500, err);
+    try {
+      const collection = req.db.collection("todos");
+      const result = await collection.updateOne(
+        { _id: ObjectId(id) },
+        { $set: { content: req.body.content } }
+      );
+      if (!result.matchedCount) throw new Error("No document found");
       res.redirect("/");
-    });
+    } catch (err) {
+      res.status(500).send(err.message);
+    } finally {
+      await req.client.close();
+    }
   });
 
 // DELETE METHOD
-app.route("/remove/:id").get((req, res) => {
-  console.log(`Remove Method`);
+app.route("/remove/:id").get(async (req, res) => {
+  console.log("Remove Method");
   const id = req.params.id;
-  Todo.findByIdAndRemove(id, (err) => {
-    if (err) return res.send(500, err);
+  try {
+    const collection = req.db.collection("todos");
+    await collection.deleteOne({ _id: ObjectId(id) });
     res.redirect("/");
-  });
+  } catch (err) {
+    res.status(500).send(err.message);
+  } finally {
+    await req.client.close();
+  }
 });
 
-// use when starting application locally
-const mongoUrlLocal = "mongodb://username:password@localhost:27017";
-// use when starting application as docker container
-const mongoUrlDocker = "mongodb://username:password@mongodb";
-// pass these options to mongo client connect request
-// to avoid DeprecationWarning for current Server Discovery and Monitoring engine
-let mongoClientOptions = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  family: 4, // use IPv4, mongoose default IPv6
-};
-
-// connection to db
-mongoose.set("strictQuery", false);
-mongoose.connect(mongoUrlLocal, mongoClientOptions);
-const db = mongoose.connection;
-db.on("error", () => {
-  console.error.bind(console, `Connection error: `);
-});
-
-db.once("open", function () {
-  console.log("Connection successful!");
-  // run server
-  const PORT = 3000;
-  app.listen(PORT, () => {
-    console.log(`Express server listening on port: ${PORT}`);
-  });
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Express server listening on port: ${PORT}`);
 });
